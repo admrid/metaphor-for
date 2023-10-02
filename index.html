@@ -71,7 +71,6 @@
         justify-content: center;
         gap: 20px;
         display: none;
-        /* transition: opacity 4s ease-in-out; */
       }
 
       #searching {
@@ -214,7 +213,6 @@
 
         try {
           const response = await fetch(`https://metaphor-for.vercel.app/api/search?query=${query}`);
-          // const response = await fetch(`http://localhost:3000/api/search?query=${query}`);
 
           if (!response.ok) {
             console.error("Error during the API call", response.status, response.statusText);
@@ -279,8 +277,6 @@
               `
             )
             .join("");
-
-          // ...
         } catch (error) {
           console.error("Error occurred:", error);
         }
