@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Metaphor Search</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet" />
+    <style>
+      html {
+        box-sizing: border-box;
+        font-size: 16px;
+        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans,
+          Droid Sans, Helvetica Neue, sans-serif;
+      }
+      *,
+      *:before,
+      *:after {
+        box-sizing: inherit;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #search-container {
+        width: 100%;
+        height: 100vh;
+        padding: 20px;
+        padding-top: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: height 0.5s ease-in-out;
+      }
+
+      #search-box {
+        display: flex;
+        flex-direction: row;
+        gap: 4px;
+        border-radius: 12px;
+        border: 2px solid black;
+        padding: 4px;
+        align-items: center;
+      }
+
+      input {
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+      }
+
+      button {
+        padding: 10px 20px;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+      }
+
+      #results {
+        width: 100%;
+        margin-top: 20px;
+        padding: 10px;
+        padding-bottom: 0;
+        flex-direction: row;
+        justify-content: center;
+        gap: 20px;
+        display: none;
+        /* transition: opacity 4s ease-in-out; */
+      }
+
+      #searching {
+        font-style: italic;
+      }
+
+      #metaphor {
+        width: 45%;
+        opacity: 0;
+        display: none;
+        transition: opacity 4s ease-in-out;
+      }
+
+      #metaphor-logo {
+        padding-left: 15px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 20px;
+        height: 50px;
+        background-color: rgba(0, 0, 0, 0);
+        background-position: 0% 0%, 0% 0%;
+        background-repeat: repeat, repeat;
+        background-attachment: scroll, scroll;
+        background-image: linear-gradient(100.48deg, rgb(75, 95, 255) 8.23%, rgb(195, 67, 255) 132.47%),
+          linear-gradient(100.48deg, rgb(195, 67, 255) 30.23%, rgb(75, 95, 255) 129.23%);
+        background-size: auto, auto;
+        background-origin: padding-box, padding-box;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      #google {
+        width: 45%;
+        opacity: 0;
+        display: none;
+        transition: opacity 4s ease-in-out;
+      }
+
+      #google-logo {
+        height: 50px;
+        padding-right: 15px;
+      }
+
+      #google-logo img {
+        width: 100px;
+        display: block;
+        margin-left: auto;
+      }
+
+      .result-item {
+        margin-bottom: 5px;
+        display: block;
+        padding: 10px 15px;
+        text-decoration: none;
+      }
+
+      .result-item:hover {
+        background-color: aliceblue;
+        border-radius: 10px;
+        padding: 10px 15px;
+      }
+
+      .title {
+        font-size: 1.2em;
+        margin: 5px 0 0;
+        color: #1a0dab;
+      }
+
+      .details-container {
+        display: flex;
+        gap: 6px;
+      }
+
+      .details {
+        font-size: 0.9em;
+        text-decoration: none;
+        color: black;
+        display: inline-block;
+        margin: 0;
+      }
+
+      .result-link {
+        display: flex;
+        align-items: center;
+        color: inherit;
+      }
+
+      .favicon {
+        width: 16px;
+        height: 16px;
+      }
+
+      .no-favicon {
+        width: 16px;
+        height: 16px;
+        background-color: white;
+        display: inline-block;
+      }
+
+      .date {
+        margin-left: 6px;
+        color: grey;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="search-container">
+      <h1>Metaphor for ?</h1>
+
+      <div id="search-box">
+        <input type="text" id="searchInput" placeholder="What are you looking for?" />
+        <button onclick="search()">Search & maybe find it</button>
+      </div>
+    </div>
+
+    <div id="results">
+      <div id="searching">searching...</div>
+      <div id="metaphor">
+        <div id="metaphor-logo">Metaphor</div>
+        <div id="metaphor-results"></div>
+      </div>
+      <div id="google">
+        <div id="google-logo">
+          <img src="/assets/Google_2015_logo.svg" alt="Google logo" />
+        </div>
+        <div id="google-results"></div>
+      </div>
+    </div>
+
+    <script>
+      async function search() {
+        const inputElement = document.getElementById("searchInput");
+        const query = inputElement.value;
+
+        const searchContainer = document.getElementById("search-container");
+        searchContainer.style.height = "200px";
+
+        const resultContainer = document.getElementById("results");
+        resultContainer.style.display = "flex";
+
+        try {
+          const response = await fetch(`https://metaphor-for.vercel.app/api/search?query=${query}`);
+          // const response = await fetch(`http://localhost:3000/api/search?query=${query}`);
+
+          if (!response.ok) {
+            console.error("Error during the API call", response.status, response.statusText);
+            return;
+          }
+
+          const { results, metaphorResults, serpApiResults } = await response.json();
+
+          function getHostname(urlString) {
+            try {
+              let url = new URL(urlString);
+              return url.hostname.replace("www.", "");
+            } catch (error) {
+              console.error("Invalid URL", urlString, error);
+              return urlString;
+            }
+          }
+
+          const searchingDiv = document.getElementById("searching");
+          const metaphor = document.getElementById("metaphor");
+          const google = document.getElementById("google");
+          searchingDiv.style.display = "none";
+          metaphor.style.display = "block";
+          metaphor.style.opacity = 1;
+          google.style.display = "block";
+          google.style.opacity = 1;
+          const metaphorResultsDiv = document.getElementById("metaphor-results");
+          const googleResultsDiv = document.getElementById("google-results");
+
+          metaphorResultsDiv.innerHTML = metaphorResults
+            .toSpliced(5)
+            .map(
+              (item) => `
+                <a href="${item.url}" target="_blank" class="result-item">
+                  <div class="details-container">
+                    ${
+                      item.favicon
+                        ? `<img src="${item.favicon}" alt="Favicon" class="favicon" />`
+                        : '<div class="no-favicon"></div>'
+                    }<p class="details">${getHostname(item.url)} <span class="date">${item.publishedDate}</span></p>
+                  </div>
+                  <div class="title">${item.title}</div>
+                </a>
+              `
+            )
+            .join("");
+
+          googleResultsDiv.innerHTML = serpApiResults
+            .toSpliced(5)
+            .map(
+              (item) => `
+                <a href="${item.link}" target="_blank" class="result-item">
+                  <div class="details-container">
+                    ${
+                      item.favicon
+                        ? `<img src="${item.favicon}" alt="Favicon" class="favicon" />`
+                        : '<div class="no-favicon"></div>'
+                    }<p class="details">${getHostname(item.link)}</p>
+                  </div>
+                  <div class="title">${item.title}</div>
+                </a>
+              `
+            )
+            .join("");
+
+          // ...
+        } catch (error) {
+          console.error("Error occurred:", error);
+        }
+      }
+    </script>
+  </body>
+</html>
